@@ -109,7 +109,6 @@ void ScanPatternInMemory(BYTE * memory, DWORD memorySize,DWORD_PTR startOffset, 
 {
 	BYTE * bytePattern = 0;
 	TCHAR * mask = 0;
-	//DWORD_PTR address = 0, delta = 0, dwMemory = 0, dwMemorySize = 0;
 	unsigned int len = _tcslen(pattern);
 	if (len % 2)
 		len++;
@@ -122,7 +121,7 @@ void ScanPatternInMemory(BYTE * memory, DWORD memorySize,DWORD_PTR startOffset, 
 	ZeroMemory(mask,len * sizeof(TCHAR));
 	ZeroMemory(bytePattern,len);
 
-	TextToByteMask(pattern,bytePattern,mask,len * sizeof(TCHAR));
+	TextToByteMask(pattern,bytePattern,mask,len);
 
 
 	WriteLog(TEXT("Scanning pattern %s memory size 0x%X\r\n"),pattern,memorySize);
@@ -175,6 +174,7 @@ LONGLONG getFileSize(HANDLE hFile)
 	{
 		if (!GetFileSizeEx(hFile, &lpFileSize))
 		{
+			MessageBox(0, TEXT("GetFileSizeEx failed"), TEXT("Error"), MB_ICONERROR);
 			return 0;
 		}
 		else
@@ -213,7 +213,9 @@ DWORD findPattern(DWORD_PTR startOffset, DWORD size, const PBYTE pattern, const 
 				found++;
 			}
 			
-		} else {
+		} 
+		else
+		{
 			pos = 0;
 		}
 	}
@@ -231,7 +233,7 @@ void WriteLog(const TCHAR * format, ...)
 		return;
 	}
 
-	ZeroMemory(logbuf, sizeof(logbuf));
+	logbuf[0] = 0;
 
 	va_start (va_alist, format);
 	_vsntprintf_s(logbuf, _countof(logbuf), _countof(logbuf) - 1, format, va_alist);
@@ -256,6 +258,7 @@ SIZE_T getSizeOfImageProcess(HANDLE processHandle, DWORD_PTR moduleBase)
 
 		if (!VirtualQueryEx(processHandle, (LPCVOID)moduleBase, &lpBuffer, sizeof(MEMORY_BASIC_INFORMATION)))
 		{
+			MessageBox(0, TEXT("VirtualQueryEx failed"), TEXT("Error"), MB_ICONERROR);
 			lpBuffer.Type = 0;
 			sizeOfImage = 0;
 		}
@@ -267,14 +270,17 @@ SIZE_T getSizeOfImageProcess(HANDLE processHandle, DWORD_PTR moduleBase)
 
 bool GetProcessList(HWND hwndDlg) 
 {
-	HWND hCombo = GetDlgItem(hwndDlg, IDC_COMBO_PROCESS);
-
-	HANDLE hProcessSnap;
-	PROCESSENTRY32 pe32;
+	HANDLE hProcessSnap = 0;
+	PROCESSENTRY32 pe32 = {0};
 	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
 	MODULEENTRY32 me32 = {0};
 	Process process;
 	HANDLE hProcess = 0;
+
+	HWND hCombo = GetDlgItem(hwndDlg, IDC_COMBO_PROCESS);
+
+	if (!hCombo)
+		return false;
 
 	processList.clear();
 	processList.reserve(34);
@@ -282,6 +288,7 @@ bool GetProcessList(HWND hwndDlg)
 	hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if(hProcessSnap == INVALID_HANDLE_VALUE)
 	{
+		MessageBox(0, TEXT("CreateToolhelp32Snapshot failed"), TEXT("Error"), MB_ICONERROR);
 		return false;
 	}
 
@@ -290,6 +297,7 @@ bool GetProcessList(HWND hwndDlg)
 	if(!Process32First(hProcessSnap, &pe32))
 	{
 		CloseHandle(hProcessSnap);
+		MessageBox(0, TEXT("Process32First failed"), TEXT("Error"), MB_ICONERROR);
 		return false;
 	}
 
@@ -398,7 +406,11 @@ BOOL CALLBACK DlgProcesslist(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_INITDIALOG:
 		{
 			SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON1)));
-			GetProcessList(hwndDlg);
+			if (!GetProcessList(hwndDlg))
+			{
+				MessageBox(0, TEXT("Getting process list failed"), TEXT("Error"), MB_ICONERROR);
+				EndDialog(hwndDlg, 0);
+			}
 		}
 		return TRUE;
 
