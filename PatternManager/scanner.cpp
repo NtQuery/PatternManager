@@ -353,37 +353,40 @@ bool SearchPatternInProcess(Process & process, TCHAR * pattern)
 	SIZE_T numberOfBytesRead = 0;
 	BYTE * buffer = 0;
 
+	bool retValue = false;
+
 	HANDLE hProcess = OpenProcess(PROCESS_VM_READ, NULL, process.PID);
 	if(!hProcess)
 	{
 		MessageBox(0, TEXT("OpenProcess with PROCESS_VM_READ rights failed"), TEXT("Error"), MB_ICONERROR);
-		return false;
 	}
-
-	buffer = (BYTE *)malloc(process.imageSize);
-
-	if (!buffer)
+	else
 	{
+		buffer = (BYTE *)malloc(process.imageSize);
+
+		if (!buffer)
+		{
+			MessageBox(0, TEXT("malloc failed"), TEXT("Error"), MB_ICONERROR);
+		}
+		else
+		{
+			if (!ReadProcessMemory(hProcess,(LPCVOID)process.imageBase,buffer,process.imageSize,&numberOfBytesRead))
+			{
+				MessageBox(0, TEXT("ReadProcessMemory failed"), TEXT("Error"), MB_ICONERROR);
+			}
+			else
+			{
+				ScanPatternInMemory(buffer,numberOfBytesRead,process.imageBase,pattern);
+				retValue = true;
+			}
+
+			free(buffer);
+		}
+
 		CloseHandle(hProcess);
-		MessageBox(0, TEXT("malloc failed"), TEXT("Error"), MB_ICONERROR);
-		return false;
 	}
 
-	if (!ReadProcessMemory(hProcess,(LPCVOID)process.imageBase,buffer,process.imageSize,&numberOfBytesRead))
-	{
-		free(buffer);
-		CloseHandle(hProcess);
-		MessageBox(0, TEXT("ReadProcessMemory failed"), TEXT("Error"), MB_ICONERROR);
-		return false;
-	}
-
-	CloseHandle(hProcess);
-
-	ScanPatternInMemory(buffer,numberOfBytesRead,process.imageBase,pattern);
-
-	free(buffer);
-
-	return true;
+	return retValue;
 }
 
 BOOL CALLBACK DlgProcesslist(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
