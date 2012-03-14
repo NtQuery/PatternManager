@@ -1,13 +1,20 @@
-Pattern Manager based on the source code of Mr. eXoDia
+Pattern Manager
+=======================================
+based on the source code of Mr. eXoDia
 
-my changes:
+Changelog
+---------
+
+Version 0.x:
+
 - small restore fix
 - Process scanner
 - File scanner
 - Unicode support
 - code improvements 
 
-v0.02:
+Version 0.02:
+
 - Fixed pattern and category editing.
 - Fixed a bug with pattern modding.
 - Changed way of listing patterns.
@@ -15,5 +22,6 @@ v0.02:
 - Added pattern Updater
 - Added a quick menu (Double click)
 
-v0.01:
+Version 0.01:
+
 - Initial release.
